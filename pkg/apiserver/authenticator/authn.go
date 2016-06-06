@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/basicauth"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/x509"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/oidc"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/tokenfile"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/webhook"
@@ -37,6 +38,7 @@ import (
 type AuthenticatorConfig struct {
 	BasicAuthFile               string
 	ClientCAFile                string
+	ApceraPubKey                string
 	TokenAuthFile               string
 	OIDCIssuerURL               string
 	OIDCClientID                string
@@ -78,6 +80,14 @@ func New(config AuthenticatorConfig) (authenticator.Request, error) {
 			return nil, err
 		}
 		authenticators = append(authenticators, tokenAuth)
+	}
+
+	if len(config.ApceraPubKey) > 0 {
+		apceraAuth, err := newAuthenticatorFromTokenKey(config.ApceraPubKey)
+		if err != nil {
+			return nil, err
+		}
+		authenticators = append(authenticators, apceraAuth)
 	}
 
 	if len(config.OIDCIssuerURL) > 0 && len(config.OIDCClientID) > 0 {
@@ -141,6 +151,17 @@ func newAuthenticatorFromBasicAuthFile(basicAuthFile string) (authenticator.Requ
 // newAuthenticatorFromTokenFile returns an authenticator.Request or an error
 func newAuthenticatorFromTokenFile(tokenAuthFile string) (authenticator.Request, error) {
 	tokenAuthenticator, err := tokenfile.NewCSV(tokenAuthFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return bearertoken.New(tokenAuthenticator), nil
+}
+
+// newAuthenticatorFromTokenKey returns an authenticator.Request or an error
+func newAuthenticatorFromTokenKey(apceraPubKey string) (authenticator.Request, error) {
+	//TODOAKSHAY
+	tokenAuthenticator, err := apceratoken.NewPublicKey(apceraPubKey)
 	if err != nil {
 		return nil, err
 	}

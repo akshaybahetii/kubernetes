@@ -23,45 +23,19 @@ import (
 	"io"
 	"net/http"
 
-	"k8s.io/kubernetes/cmd/auth-server/app/options"
+	"../connector"
+	"./options"
 )
 
 //AuthServer type of server
 type AuthServer struct {
-	name   string
-	server *http.Server
-	/*    *auth.Auth
-	      running      bool
-	      runMutex     sync.RWMutex
-	      shutdownChan chan bool
-
-	      // LDAPConfig configures us to communicate with an LDAP server.
-	      LDAPConfig *ldap.Config*/
+	name      string
+	server    *http.Server
+	connector connector.Connector
+	// May need to add a running flag that indicates server is running.
 }
 
-/*func NewAuthServer(
-	client *kubeclient.Client,
-	config *options.ProxyServerConfig,
-	iptInterface utiliptables.Interface,
-	proxier proxy.ProxyProvider,
-	broadcaster record.EventBroadcaster,
-	recorder record.EventRecorder,
-	conntracker Conntracker,
-	proxyMode string,
-) (*ProxyServer, error) {
-	return &ProxyServer{
-		Client:       client,
-		Config:       config,
-		IptInterface: iptInterface,
-		Proxier:      proxier,
-		Broadcaster:  broadcaster,
-		Recorder:     recorder,
-		Conntracker:  conntracker,
-		ProxyMode:    proxyMode,
-	}, nil
-}
-*/
-var mux map[string]func(http.ResponseWriter, *http.Request)
+var httpHandlers map[string]func(http.ResponseWriter, *http.Request)
 
 type handlers struct{}
 
@@ -73,6 +47,8 @@ func NewAuthServer(adminDN string) *AuthServer {
 			Addr:    ":8000",
 			Handler: &handlers{},
 		},
+		//Configure connectors based on configuration.
+		connector: connector.LDAPConnector{IDName: "LDAP"},
 	}
 }
 
@@ -81,15 +57,15 @@ func NewAuthServerDefault(*options.AuthServerConfig) (*AuthServer, error) {
 	return NewAuthServer("cn=apcera"), nil
 }
 
-func ldapLogin(w http.ResponseWriter, r *http.Request) {
-	//username, password, ok := r.BasicAuth()
-	username, _, _ := r.BasicAuth()
-	//	resp := fmt.Sprintf("The recieved username and password is ", username, password, ok)
-	io.WriteString(w, username)
+func (s *AuthServer) ldapLogin(w http.ResponseWriter, r *http.Request) {
+	_, _, claims := s.connector.Login(r)
+	//Call auth.HttpResposeWriter with Claimlist and w.
+	//It will add expiration time and Issuer. And also hash and sign token.
+	io.WriteString(w, fmt.Sprintf("Success login claims are %x ", claims))
 }
 
 func (*handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h, ok := mux[r.URL.String()]; ok {
+	if h, ok := httpHandlers[r.URL.String()]; ok {
 		h(w, r)
 		return
 	}
@@ -97,16 +73,10 @@ func (*handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Error not a valid URI "+r.URL.String())
 }
 
-func basicLogin(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Trying basic login")
-}
-
-// Run runs the specified ProxyServer.  This should never exit (unless CleanupAndExit is set).
+// Run runs the specified AuthServer.  This should never exit (unless CleanupAndExit is set).
 func (s *AuthServer) Run() error {
-	fmt.Println("running auth server")
-	mux = make(map[string]func(http.ResponseWriter, *http.Request))
-	mux["/ldapLogin"] = ldapLogin
-	mux["/basicLogin"] = basicLogin
+	//Http Handlers for different login types based on configuration.
+	httpHandlers = make(map[string]func(http.ResponseWriter, *http.Request))
 
 	s.server.ListenAndServe()
 	return nil

@@ -19,36 +19,43 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
-	"k8s.io/kubernetes/cmd/auth-server/app"
-	"k8s.io/kubernetes/cmd/auth-server/app/options"
+	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
+	"k8s.io/kubernetes/pkg/version/verflag"
+
+	"./app"
+	"./app/options"
 )
 
 func init() {
-	//healthz.DefaultHealthz()
-	fmt.Println("In the init function.")
+	fmt.Println("Initializing auth server.. ")
 }
 
 func main() {
-	//	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	config := options.NewAuthConfig()
-	//	config.AddFlags(pflag.CommandLine)
+	config.AddFlags1(pflag.CommandLine)
 
-	/*	util.InitFlags()
-		util.InitLogs()
-		defer util.FlushLogs()
+	fmt.Println("The adminDN is ", config.AdminDN)
 
-		verflag.PrintAndExitIfRequested()
-	*/
-	fmt.Println("Running auth server")
+	flag.InitFlags()
+	util.InitLogs()
+	defer util.FlushLogs()
+
+	verflag.PrintAndExitIfRequested()
+
+	//config := options.NewAuthConfig()
+
+	fmt.Println("Running Auth Server with default config.")
 	s, err := app.NewAuthServerDefault(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-
-	if err = s.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
+	s.Run()
+	fmt.Fprintf(os.Stderr, "%v\n", err)
+	os.Exit(1)
 }
