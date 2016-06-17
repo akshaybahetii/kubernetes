@@ -2,6 +2,7 @@ package connector
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -44,6 +45,27 @@ func (LDAPCtr LDAPConnector) Login(r *http.Request) (bool, error, []*claims.Clai
 
 	//	username, password, _ := r.BasicAuth()
 	return true, nil, claimList
+}
+
+type ldapHandler struct{}
+
+func (LDAPCtr LDAPConnector) Handler() http.Handler {
+	return &ldapHandler{}
+}
+
+func (*ldapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Attempting LDAP login")
+
+	//httpTokenRequestHandler. Present continuum/common/auth.
+	//Validate the requets. Then perform LDAP Login check.
+
+	claimList := []*claims.Claim{claims.NewClaim("AUTH", "AUTH_TYPE", "LDAP_BASIC"), claims.NewClaim("AUTH", "USERNAME", "AKSHAY")}
+
+	// Once Login success and Claimlist generate.
+	// Call httpResponseWriter from common/auth. It return's the token.
+	io.WriteString(w, "LDAP Login sucess token is")
+	return
+
 }
 
 //Setup configures connetor with config file parametes.

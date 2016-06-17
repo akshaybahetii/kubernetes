@@ -19,8 +19,6 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 
 	"../connector"
@@ -29,26 +27,23 @@ import (
 
 //AuthServer type of server
 type AuthServer struct {
-	name      string
-	server    *http.Server
-	connector connector.Connector
+	name           string
+	server         *http.Server
+	ldapConnector  connector.Connector
+	basicConnector connector.Connector
 	// May need to add a running flag that indicates server is running.
 }
 
 var httpHandlers map[string]func(http.ResponseWriter, *http.Request)
 
-type handlers struct{}
-
 //NewAuthServer is contructor.
 func NewAuthServer(adminDN string) *AuthServer {
 	return &AuthServer{
-		name: adminDN,
-		server: &http.Server{
-			Addr:    ":8000",
-			Handler: &handlers{},
-		},
+		name:   adminDN,
+		server: &http.Server{},
 		//Configure connectors based on configuration.
-		connector: connector.LDAPConnector{IDName: "LDAP"},
+		ldapConnector:  connector.LDAPConnector{IDName: "LDAP"},
+		basicConnector: connector.BasicConnector{IDName: "Basic"},
 	}
 }
 
@@ -57,13 +52,36 @@ func NewAuthServerDefault(*options.AuthServerConfig) (*AuthServer, error) {
 	return NewAuthServer("cn=apcera"), nil
 }
 
-func (s *AuthServer) ldapLogin(w http.ResponseWriter, r *http.Request) {
-	_, _, claims := s.connector.Login(r)
+/* type HttpTokenRequest struct {
+	Req *component.HttpRequest
+
+	// AuthType is the requested identity provider to authenticate with.
+	AuthType         string
+	AuthHeader       string
+	AuthHeadPreamble string
+	GoogAccessToken  string
+	GoogIdToken      string
+	GoogUserInfo     *httpapi.GooglePlusUserInfo
+	WriteCookie      bool
+	Token            *sec.JWT
+	ContentType      string
+	RequestId        string
+	Parameters       *url.Values
+	Log              api.LogOnlyContext
+	ParsedBody       interface{}
+}*/
+/*
+//Call login with appropriate connector.
+func (s *AuthServer) login(w http.ResponseWriter, r *http.Request, connector connector.Connector) {
+	//Call http token request parser to token req structure. Most of the
+	// components in the structure are not required.TODO
+	_, _, claims := connector.Login(r)
 	//Call auth.HttpResposeWriter with Claimlist and w.
 	//It will add expiration time and Issuer. And also hash and sign token.
 	io.WriteString(w, fmt.Sprintf("Success login claims are %x ", claims))
 }
-
+*/
+/*
 func (*handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h, ok := httpHandlers[r.URL.String()]; ok {
 		h(w, r)
@@ -71,13 +89,14 @@ func (*handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.WriteString(w, "Error not a valid URI "+r.URL.String())
-}
+}*/
 
 // Run runs the specified AuthServer.  This should never exit (unless CleanupAndExit is set).
 func (s *AuthServer) Run() error {
 	//Http Handlers for different login types based on configuration.
 	httpHandlers = make(map[string]func(http.ResponseWriter, *http.Request))
 
-	s.server.ListenAndServe()
+	go http.ListenAndServe(":8081", s.basicConnector.Handler())
+	http.ListenAndServe(":8082", s.ldapConnector.Handler())
 	return nil
 }

@@ -37,9 +37,7 @@ func init() {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	config := options.NewAuthConfig()
-	config.AddFlags1(pflag.CommandLine)
-
-	fmt.Println("The adminDN is ", config.AdminDN)
+	config.AddFlags(pflag.CommandLine)
 
 	flag.InitFlags()
 	util.InitLogs()
