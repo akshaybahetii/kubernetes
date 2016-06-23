@@ -224,7 +224,6 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdExposeService(f, out))
 	cmds.AddCommand(NewCmdAutoscale(f, out))
 	cmds.AddCommand(rollout.NewCmdRollout(f, out))
-
 	cmds.AddCommand(NewCmdLabel(f, out))
 	cmds.AddCommand(NewCmdAnnotate(f, out))
 	cmds.AddCommand(NewCmdTaint(f, out))
@@ -237,7 +236,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdConvert(f, out))
 	cmds.AddCommand(NewCmdCompletion(f, out))
 
-	cmds.AddCommand(NewCmdLogin(f, clientcmd.NewDefaultPathOptions(), out))
+	cmds.AddCommand(NewCmdLogin(f, clientcmd.NewDefaultPathOptions(), in, out, err))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {

@@ -37,4 +37,5 @@ func NewAuthConfig() *AuthServerConfig {
 // AddFlags adds flags for a specific AuthServer to the specified FlagSet
 func (s *AuthServerConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.LDAPAdminDN, "adminDN", s.LDAPAdminDN, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
+
 }

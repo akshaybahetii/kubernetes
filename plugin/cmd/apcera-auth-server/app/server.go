@@ -22,10 +22,11 @@ import (
 	"net/http"
 	"sync"
 
-	"../auth"
+	"github.com/apcera/gossl"
 
 	"../claims"
 	"../connector"
+	"../sec"
 	"./options"
 )
 
@@ -39,10 +40,38 @@ type AuthServer struct {
 	privKey           []byte
 	pubKey            []byte
 	authServerPubKeys map[string][]byte
+	suite             *sec.AlgorithmSuite
 
 	ldapConnector *connector.LDAPConnector
 	//	basicConnector connector.Connector
 	// May need to add a running flag that indicates server is running.
+}
+
+func newEcKey(size int) (pub, priv []byte, err error) {
+	key, err := gossl.NewECKey(size)
+	if err != nil {
+		return nil, nil, err
+
+	}
+	defer key.Free()
+	err = key.Generate()
+	if err != nil {
+		return nil, nil, err
+
+	}
+	pub, err = key.PubKey()
+	if err != nil {
+		return nil, nil, err
+
+	}
+	priv, err = key.PrivKey()
+	if err != nil {
+		return nil, nil, err
+
+	}
+
+	return
+
 }
 
 //NewAuthServer is contructor.
@@ -52,7 +81,9 @@ func NewAuthServer(host string) *AuthServer {
 		server:   &http.Server{},
 		//Configure connectors based on configuration.
 		//		basicConnector: connector.BasicConnector{IDName: "Basic"},
+		suite: sec.P256Suite,
 	}
+	authServer.pubKey, authServer.privKey, _ = newEcKey(256)
 	authServer.ldapConnector = &connector.LDAPConnector{}
 	return authServer
 }
@@ -62,30 +93,10 @@ func NewAuthServerDefault(*options.AuthServerConfig) (*AuthServer, error) {
 	return NewAuthServer("apcera-host"), nil
 }
 
-func (*AuthServer) NewHttpResponseWriter(tr *auth.HttpTokenRequest, valid claims.ClaimList) (string, error) {
-	return "Signed Token Yeah!!", nil
+func (s *AuthServer) NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) (string, error) {
+	response, error := s.httpBearerES256(tr, valid)
+	return response, error
 }
-
-/*
-//Call login with appropriate connector.
-func (s *AuthServer) login(w http.ResponseWriter, r *http.Request, connector connector.Connector) {
-	//Call http token request parser to token req structure. Most of the
-	// components in the structure are not required.TODO
-	_, _, claims := connector.Login(r)
-	//Call auth.HttpResposeWriter with Claimlist and w.
-	//It will add expiration time and Issuer. And also hash and sign token.
-	io.WriteString(w, fmt.Sprintf("Success login claims are %x ", claims))
-}
-*/
-/*
-func (*handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h, ok := httpHandlers[r.URL.String()]; ok {
-		h(w, r)
-		return
-	}
-
-	io.WriteString(w, "Error not a valid URI "+r.URL.String())
-}*/
 
 // Run runs the specified AuthServer.  This should never exit (unless CleanupAndExit is set).
 func (s *AuthServer) Run() error {

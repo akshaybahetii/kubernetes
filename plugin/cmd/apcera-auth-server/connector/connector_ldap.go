@@ -46,15 +46,15 @@ func (LDAPCtr *LDAPConnector) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	//httpTokenRequestHandler. Present continuum/common/auth.
 	//Validate the requets. Then perform LDAP Login check.
 
-	//	claimList := []*claims.Claim{claims.NewClaim("AUTH", "AUTH_TYPE", "LDAP_BASIC"), claims.NewClaim("AUTH", "USERNAME", "AKSHAY")}
+	claimList := []*claims.Claim{claims.NewClaim("AUTH", "AUTH_TYPE", "LDAP_BASIC"), claims.NewClaim("AUTH", "USERNAME", "AKSHAY")}
 
 	// Once Login success and Claimlist generate.
 	// Call httpResponseWriter from common/auth. It return's the token.
 	fmt.Printf("test \n\n\n")
-	token, _ := LDAPCtr.authServer.NewHttpResponseWriter(nil, nil)
+	token, _ := LDAPCtr.authServer.NewHttpResponseWriter(r, claimList)
 
 	fmt.Printf("The token is [%s]", token)
-	io.WriteString(w, "LDAP Login sucess token is ")
+	io.WriteString(w, token)
 	return
 
 }
