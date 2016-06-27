@@ -28,11 +28,10 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/util"
 	utilflag "k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/version/verflag"
-
-	"github.com/spf13/pflag"
 )
 
 // HyperKube represents a single binary that can morph/manage into multiple

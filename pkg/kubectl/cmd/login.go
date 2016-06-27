@@ -135,6 +135,10 @@ func (o *LDAPOptions) processAuthRequest(req *http.Request) error {
 		startingStanza = clientcmdapi.NewAuthInfo()
 
 	}
+
+	//Create a new auth info struct populate it with the token.
+	//TODO V2 Add check if token exsist and is valid. Ask user for permission to overwrite.
+
 	authInfo := o.modifyAuthInfo(*startingStanza, token)
 	config.AuthInfos["apcera"] = &authInfo
 
@@ -165,11 +169,6 @@ func (o *LDAPOptions) modifyAuthInfo(existingAuthInfo clientcmdapi.AuthInfo, tok
 	return modifiedAuthInfo
 }
 
-/*
-func (o *LDAPOptions) writeToken(accessToken string) {
-	c.token = fmt.Sprintf("%s %s", constants.HEAD_BEARER, accessToken)
-
-}*/
 func (o *LDAPOptions) connectWithServer(serverHost string) error {
 	ldapPort := 8082
 
@@ -209,25 +208,4 @@ func (o *LDAPOptions) RunLDAPLogin(out io.Writer, in io.Reader, cmd *cobra.Comma
 	fmt.Fprintf(out, fmt.Sprintf("Login success apcera !! [%s][%s][%q]", o.Username, o.Password, err))
 
 	return nil
-	/*
-		flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-		flags.SetNormalizeFunc(utilflag.WarnWordSepNormalizeFunc) // Warn for "_" flags
-
-		cmdCliCfg := cmdutil.DefaultClientConfig(flags)
-		cliCfg, err := cmdCliCfg.ClientConfig()
-		if err != nil {
-			return err
-
-		}
-		//TODO need to figure out this AuthProvider is configured/specified as a arguement to the login command.
-		auth, err := restclient.GetAuthProvider(cliCfg.Host,
-			cliCfg.AuthProvider,
-			cliCfg.AuthConfigPersister)
-		if err != nil {
-			return err
-
-		}
-
-		return auth.Login()
-	*/
 }

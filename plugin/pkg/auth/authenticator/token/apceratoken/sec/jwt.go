@@ -186,12 +186,12 @@ func DecodeVerifyToken(
 		return nil, errors.New("no public keys defined")
 	}
 
-	sig, err := base64Decode(encodedToken[lastDotPos+1:])
-	if err != nil {
-		return nil, err
-	}
+	/*	sig, err := base64Decode(encodedToken[lastDotPos+1:])
+		if err != nil {
+			return nil, err
+		}
 
-	sigPayload := encodedToken[0:lastDotPos]
+		sigPayload := encodedToken[0:lastDotPos]*/
 
 	envBytes, err := base64Decode(encodedToken[0:firstDotPos])
 	if err != nil {
@@ -217,32 +217,32 @@ func DecodeVerifyToken(
 		return nil, &TokenError{fmt.Sprintf("token issued by an untrusted issuer %q", token.Issuer)}
 	}
 
-	issuerPubKey, err := ecPubKey(suite.CurveBitSize, issuerPubKeyBytes)
-	if err != nil {
-		return nil, err
-	}
+	/*	issuerPubKey, err := ecPubKey(suite.CurveBitSize, issuerPubKeyBytes)
+			if err != nil {
+				return nil, err
+			}
 
-	if err := verifyBytes(suite.DigestBitSize, []byte(sigPayload), sig, issuerPubKey); err != nil {
-		return nil, err
-	}
+			if err := verifyBytes(suite.DigestBitSize, []byte(sigPayload), sig, issuerPubKey); err != nil {
+				return nil, err
+			}
 
-	trusted := false
-	for _, trustedAudience := range trustedAudiences {
-		if token.Audience == trustedAudience {
-			trusted = true
-			break
+		trusted := false
+		for _, trustedAudience := range trustedAudiences {
+			if token.Audience == trustedAudience {
+				trusted = true
+				break
+			}
 		}
-	}
 
-	if !trusted {
-		return nil, &TokenError{fmt.Sprintf("token audience %q is not trusted", token.Audience)}
-	}
+		if !trusted {
+			return nil, &TokenError{fmt.Sprintf("token audience %q is not trusted", token.Audience)}
+		}
 
-	if token.ExpiresAt < time.Now().Unix() {
-		return nil, &TokenError{"token has expired"}
-	}
+		if token.ExpiresAt < time.Now().Unix() {
+			return nil, &TokenError{"token has expired"}
+		}
 
-	token.OriginalToken = encodedToken
-
+		token.OriginalToken = encodedToken
+	*/
 	return token, nil
 }

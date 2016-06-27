@@ -25,9 +25,10 @@ import (
 
 	"github.com/apcera/gossl"
 
-	"../../../pkg/auth/authenticator/token/apceratoken/claims"
-	"../../../pkg/auth/authenticator/token/apceratoken/connector"
-	"../../../pkg/auth/authenticator/token/apceratoken/sec"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/claims"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/connector"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/sec"
+
 	"./options"
 )
 

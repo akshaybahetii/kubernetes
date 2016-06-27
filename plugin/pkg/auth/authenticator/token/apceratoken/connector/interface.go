@@ -3,7 +3,7 @@ package connector
 import (
 	"net/http"
 
-	"../auth"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/auth"
 )
 
 //Connector for auth type to provide authentication feature.

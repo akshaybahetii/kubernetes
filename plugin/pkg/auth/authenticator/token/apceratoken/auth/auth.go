@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 
-	"./../claims"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/claims"
 )
 
 type Auth interface {

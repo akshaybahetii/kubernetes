@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"./../auth"
-	"./../claims"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/auth"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/claims"
 )
 
 //LDAPConnector struct {

@@ -26,58 +26,33 @@ import (
 
 type TokenAuthenticator struct {
 	//token string
-	token *user.DefaultInfo
+	pubKey string
 }
 
-// NewCSV returns a TokenAuthenticator, populated from a CSV file.
 // The CSV file must contain records in the format "token,username,useruid"
 func NewPublicKey(path string) (*TokenAuthenticator, error) {
-	/*	file, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-
-		tokens := make(map[string]*user.DefaultInfo)
-		reader := csv.NewReader(file)
-		reader.FieldsPerRecord = -1
-		for {
-			record, err := reader.Read()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				return nil, err
-			}
-			if len(record) < 3 {
-				return nil, fmt.Errorf("token file '%s' must have at least 3 columns (token, user name, user uid), found %d", path, len(record))
-			}
-			obj := &user.DefaultInfo{
-				Name: record[1],
-				UID:  record[2],
-			}
-			tokens[record[0]] = obj
-
-			if len(record) >= 4 {
-				obj.Groups = strings.Split(record[3], ",")
-			}
-		}
-	*/
-	token := &user.DefaultInfo{
-		Name: path,
-	}
 
 	return &TokenAuthenticator{
-		token: token,
+		pubKey: path,
 	}, nil
 }
 
 func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, error) {
-	pubKey := a.token.Name
+	pubKey := a.pubKey
 	pubKeys := make(map[string][]byte)
 	pubKeys["PrincipalName"] = []byte(pubKey)
 	aud := []string{"apcera.me", "apcera"}
 
 	jwt, err := sec.DecodeVerifyToken(value, sec.P256Suite, pubKeys, aud)
-	return nil, true, fmt.Errorf("the apcera token is [%s][%s]--[%q]--[%q]", value, a.token.Name, jwt, err)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	user := &user.DefaultInfo{
+		Name: jwt.Claims[1].Value.(string),
+	}
+
+	fmt.Printf("token and claims are  [%s]--[%q]", value, err)
+	return user, true, nil
 }
