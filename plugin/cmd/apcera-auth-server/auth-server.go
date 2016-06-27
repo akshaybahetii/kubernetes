@@ -45,10 +45,8 @@ func main() {
 
 	verflag.PrintAndExitIfRequested()
 
-	//config := options.NewAuthConfig()
-
-	fmt.Println("Running Auth Server with default config.")
-	s, err := app.NewAuthServerDefault(config)
+	fmt.Printf("Running Auth Server with config. [%q]", config)
+	s, err := app.NewAuthServer(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

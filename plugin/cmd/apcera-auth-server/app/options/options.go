@@ -21,21 +21,21 @@ import "github.com/spf13/pflag"
 
 // AuthServerConfig configures and runs a Kubernetes proxy server
 type AuthServerConfig struct {
-	LDAPAdminDN       string
-	LDAPAdminPassword string
+	Host    string
+	PrivKey string
 }
 
 //NewAuthConfig auth config struct
 //TODO: need to figure out how config is structed for different aut mechanims.
 func NewAuthConfig() *AuthServerConfig {
 	return &AuthServerConfig{
-		LDAPAdminDN:       "cn=apcera",
-		LDAPAdminPassword: "apcera123",
+		Host: "default-apcera-host",
 	}
 }
 
 // AddFlags adds flags for a specific AuthServer to the specified FlagSet
 func (s *AuthServerConfig) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.LDAPAdminDN, "adminDN", s.LDAPAdminDN, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
+	fs.StringVar(&s.Host, "host", s.Host, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
+	fs.StringVar(&s.PrivKey, "priv-key", s.PrivKey, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 
 }

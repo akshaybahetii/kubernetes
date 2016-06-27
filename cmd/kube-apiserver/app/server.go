@@ -188,6 +188,7 @@ func Run(s *options.APIServer) error {
 	authenticator, err := authenticator.New(authenticator.AuthenticatorConfig{
 		BasicAuthFile:               s.BasicAuthFile,
 		ClientCAFile:                s.ClientCAFile,
+		ApceraPubKey:                s.ApceraPubKey,
 		TokenAuthFile:               s.TokenAuthFile,
 		OIDCIssuerURL:               s.OIDCIssuerURL,
 		OIDCClientID:                s.OIDCClientID,

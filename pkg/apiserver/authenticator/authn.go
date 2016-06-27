@@ -83,7 +83,7 @@ func New(config AuthenticatorConfig) (authenticator.Request, error) {
 	}
 
 	if len(config.ApceraPubKey) > 0 {
-		apceraAuth, err := newAuthenticatorFromTokenKey(config.ApceraPubKey)
+		apceraAuth, err := newAuthenticatorFromPublicKey(config.ApceraPubKey)
 		if err != nil {
 			return nil, err
 		}
@@ -158,8 +158,8 @@ func newAuthenticatorFromTokenFile(tokenAuthFile string) (authenticator.Request,
 	return bearertoken.New(tokenAuthenticator), nil
 }
 
-// newAuthenticatorFromTokenKey returns an authenticator.Request or an error
-func newAuthenticatorFromTokenKey(apceraPubKey string) (authenticator.Request, error) {
+// newAuthenticatorFromPublicKey returns an authenticator.Request or an error
+func newAuthenticatorFromPublicKey(apceraPubKey string) (authenticator.Request, error) {
 	//TODOAKSHAY
 	tokenAuthenticator, err := apceratoken.NewPublicKey(apceraPubKey)
 	if err != nil {

@@ -98,6 +98,7 @@ type ServerRunOptions struct {
 	DefaultStorageVersions string
 	TLSCertFile            string
 	TLSPrivateKeyFile      string
+	ApceraPubKey           string
 	TokenAuthFile          string
 	WatchCacheSizes        []string
 }
@@ -337,7 +338,7 @@ func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 		"a self-signed certificate and key are generated for the public address and saved to /var/run/kubernetes.")
 
 	fs.StringVar(&s.TLSPrivateKeyFile, "tls-private-key-file", s.TLSPrivateKeyFile, "File containing x509 private key matching --tls-cert-file.")
-
+	fs.StringVar(&s.ApceraPubKey, "apcera-pub-key", s.ApceraPubKey, "If set, the key that will be used to          secure the secure port of the API server via token authentication.")
 	fs.StringVar(&s.TokenAuthFile, "token-auth-file", s.TokenAuthFile, "If set, the file that will be used to secure the secure port of the API server via token authentication.")
 
 	fs.StringSliceVar(&s.WatchCacheSizes, "watch-cache-sizes", s.WatchCacheSizes, "List of watch cache sizes for every resource (pods, nodes, etc.), comma separated. The individual override format: resource#size, where size is a number. It takes effect when watch-cache is enabled.")

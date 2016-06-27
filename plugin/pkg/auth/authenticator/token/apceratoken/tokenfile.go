@@ -17,34 +17,67 @@ limitations under the License.
 package apceratoken
 
 import (
-	"github.com/golang/glog"
+	"fmt"
+
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/sec"
 
 	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type TokenAuthenticator struct {
-	pubKey string
-	//tokens map[string]*user.DefaultInfo
+	//token string
+	token *user.DefaultInfo
 }
 
-// NewPublicKey returns a TokenAuthenticator, populated from a CSV file.
+// NewCSV returns a TokenAuthenticator, populated from a CSV file.
+// The CSV file must contain records in the format "token,username,useruid"
 func NewPublicKey(path string) (*TokenAuthenticator, error) {
-	return &TokenAuthenticator{
-		pubKey: path,
-	}, nil
+	/*	file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
 
+		tokens := make(map[string]*user.DefaultInfo)
+		reader := csv.NewReader(file)
+		reader.FieldsPerRecord = -1
+		for {
+			record, err := reader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+			if len(record) < 3 {
+				return nil, fmt.Errorf("token file '%s' must have at least 3 columns (token, user name, user uid), found %d", path, len(record))
+			}
+			obj := &user.DefaultInfo{
+				Name: record[1],
+				UID:  record[2],
+			}
+			tokens[record[0]] = obj
+
+			if len(record) >= 4 {
+				obj.Groups = strings.Split(record[3], ",")
+			}
+		}
+	*/
+	token := &user.DefaultInfo{
+		Name: path,
+	}
+
+	return &TokenAuthenticator{
+		token: token,
+	}, nil
 }
 
 func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, error) {
-	/*user, ok := a.tokens[value]
-	if !ok {
-		return nil, false, nil
-	}*/
-	user := &user.DefaultInfo{
-		Name: "akshay",
-		UID:  "akshay",
-	}
-	//	DecodeToken(value, []byte(a.pubKey))
-	glog.Warningf("AKSHAY In function Authenticate Token in apcera token. [%s] [%s]", a.pubKey, value)
-	return user, true, nil
+	pubKey := a.token.Name
+	pubKeys := make(map[string][]byte)
+	pubKeys["PrincipalName"] = []byte(pubKey)
+	aud := []string{"apcera.me", "apcera"}
+
+	jwt, err := sec.DecodeVerifyToken(value, sec.P256Suite, pubKeys, aud)
+	return nil, true, fmt.Errorf("the apcera token is [%s][%s]--[%q]--[%q]", value, a.token.Name, jwt, err)
 }
