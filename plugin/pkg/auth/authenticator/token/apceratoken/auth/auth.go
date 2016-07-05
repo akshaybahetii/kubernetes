@@ -7,5 +7,6 @@ import (
 )
 
 type Auth interface {
-	NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) (string, error)
+	//Function given a claimlist creates a token with the auth server's signature.
+	NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) ([]byte, error)
 }

@@ -3,7 +3,7 @@
 package app
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,7 +17,7 @@ const TYP_BEARER = "JWT"
 
 // HttpBearerES256 responds to the HTTP token request with a new token
 // signed by auth server.
-func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) (string, error) {
+func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) ([]byte, error) {
 	token := &sec.JWT{
 		Issuer:   "PrincipalName",
 		Audience: CLUSTER_NAME,
@@ -47,6 +47,8 @@ func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) (
 			}
 			token.ExpiresAt = exp
 	*/
+	//TODO Akshay add config param for token expiration.
+	token.ExpiresAt = time.Now().Add(time.Duration(50000) * time.Second).Unix()
 	for i := range valid {
 		token.Claims = append(token.Claims, *valid[i])
 
@@ -54,7 +56,7 @@ func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) (
 
 	signedToken, err := sec.SignEncodeToken(token, s.suite, s.privKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// generate the response message, return it to caller
@@ -70,5 +72,5 @@ func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) (
 	// set the remaining lifetime in the response parameter
 	response.ExpiresIn = strconv.FormatInt(token.ExpiresAt-nowUnix, 10)
 
-	return fmt.Sprintf("%q", response), nil
+	return json.Marshal(response)
 }

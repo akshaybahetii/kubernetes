@@ -17,19 +17,26 @@ limitations under the License.
 // Package options contains flags for initializing a proxy.
 package options
 
-import "github.com/spf13/pflag"
+import (
+	"fmt"
+
+	"github.com/spf13/pflag"
+)
 
 // AuthServerConfig configures and runs a Kubernetes proxy server
 type AuthServerConfig struct {
-	Host    string
-	PrivKey string
+	Host     string
+	CertFile string
+	PrivKey  string
 }
 
 //NewAuthConfig auth config struct
 //TODO: need to figure out how config is structed for different aut mechanims.
 func NewAuthConfig() *AuthServerConfig {
 	return &AuthServerConfig{
-		Host: "default-apcera-host",
+		Host:     "default-apcera-host",
+		PrivKey:  "cert.key",
+		CertFile: "cert.crt",
 	}
 }
 
@@ -37,5 +44,6 @@ func NewAuthConfig() *AuthServerConfig {
 func (s *AuthServerConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Host, "host", s.Host, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	fs.StringVar(&s.PrivKey, "priv-key", s.PrivKey, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
-
+	fs.StringVar(&s.CertFile, "cert-file", s.CertFile, "CertFile for the http server.")
+	fmt.Printf("The flag set is [%q]", s)
 }

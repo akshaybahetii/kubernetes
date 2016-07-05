@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -109,6 +112,46 @@ type LDAPOptions struct {
 	Config *restclient.Config
 }
 
+// handleAuthResponse takes an open response and handles the codes that may come
+// back. It returns either an access token or an error.
+func handleAuthResponse(resp *http.Response) (string, error) {
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		type successResponse struct {
+			AccessToken string `json:"access_token"`
+		}
+
+		var token *successResponse
+		if err := json.Unmarshal(b, &token); err != nil {
+			return "", err
+
+		}
+
+		if token.AccessToken == "" {
+			return "", errors.New("no token received")
+
+		}
+
+		return token.AccessToken, nil
+	default:
+		var apiErr error
+		if err := json.Unmarshal(b, &apiErr); err != nil {
+			return "", err
+		}
+
+		return "", errors.New("Failed to get token")
+
+	}
+
+}
+
 // Processes an auth server request with basic shared functionality... do the
 // request, check the response type, parse the token, set it and return.
 func (o *LDAPOptions) processAuthRequest(req *http.Request) error {
@@ -121,8 +164,11 @@ func (o *LDAPOptions) processAuthRequest(req *http.Request) error {
 
 	}
 
-	bodyText, err := ioutil.ReadAll(resp.Body)
-	token := string(bodyText)
+	token, err := handleAuthResponse(resp)
+
+	if err != nil {
+		return err
+	}
 
 	config, err := o.configAccess.GetStartingConfig()
 	if err != nil {
@@ -173,10 +219,14 @@ func (o *LDAPOptions) connectWithServer(serverHost string) error {
 	ldapPort := 8082
 
 	url := fmt.Sprintf("%s:%d", serverHost, ldapPort)
+	fmt.Printf("The URL	11 used is %s\n", url)
+	url = strings.Replace(url, "https", "http", 1)
+
+	fmt.Printf("The URL used is %s\n", url)
+
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return err
-
 	}
 
 	if len(o.Username) > 0 {
@@ -192,6 +242,7 @@ func (o *LDAPOptions) connectWithServer(serverHost string) error {
 }
 
 func (o *LDAPOptions) RunLDAPLogin(out io.Writer, in io.Reader, cmd *cobra.Command, f *cmdutil.Factory) error {
+	fmt.Fprintf(out, fmt.Sprintf("Hi KAhsya"))
 	var buf []byte
 
 	config, err := f.ClientConfig()
@@ -203,9 +254,8 @@ func (o *LDAPOptions) RunLDAPLogin(out io.Writer, in io.Reader, cmd *cobra.Comma
 	io.ReadFull(in, buf)
 
 	host, _, _ := net.SplitHostPort(config.Host)
-
 	err = o.connectWithServer(host)
-	fmt.Fprintf(out, fmt.Sprintf("Login success apcera !! [%s][%s][%q]", o.Username, o.Password, err))
 
+	fmt.Fprintf(out, fmt.Sprintf("Login success apcera !! [%s][%s][%q]", o.Username, o.Password, err))
 	return nil
 }

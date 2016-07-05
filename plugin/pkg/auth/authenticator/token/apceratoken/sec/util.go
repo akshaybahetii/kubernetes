@@ -169,6 +169,12 @@ func ecPubKey(keySize int, keyBytes []byte) (*gossl.ECKey, error) {
 
 // base64Decode decodes a base64-encoded value, adding any missing
 // padding before decoding if necessary.
+func Base64Decode(s string) ([]byte, error) {
+	return base64.URLEncoding.DecodeString(pad(s))
+}
+
+// base64Decode decodes a base64-encoded value, adding any missing
+// padding before decoding if necessary.
 func base64Decode(s string) ([]byte, error) {
 	return base64.URLEncoding.DecodeString(pad(s))
 }
@@ -176,6 +182,11 @@ func base64Decode(s string) ([]byte, error) {
 // base64Encode encodes a value with base64 URL encoding. Any padding
 // bytes are trimmed.
 func base64Encode(b []byte) string {
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
+}
+
+// bytes are trimmed.
+func Base64Encode(b []byte) string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
 }
 

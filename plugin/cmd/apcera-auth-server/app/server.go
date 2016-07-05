@@ -19,6 +19,10 @@ limitations under the License.
 package app
 
 import (
+	"bytes"
+	"crypto"
+	"crypto/tls"
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"sync"
@@ -38,10 +42,11 @@ type AuthServer struct {
 	server   *http.Server
 
 	// keyMutex should be held when reading/updating component keys.
-	keyMutex sync.RWMutex
-	privKey  []byte
-	pubKey   []byte
-	suite    *sec.AlgorithmSuite
+	keyMutex  sync.RWMutex
+	privKey   crypto.PrivateKey
+	pubKey    []byte
+	suite     *sec.AlgorithmSuite
+	tlsConfig *tls.Config
 
 	ldapConnector *connector.LDAPConnector
 	//	basicConnector connector.Connector
@@ -83,18 +88,36 @@ func NewAuthServer(config *options.AuthServerConfig) (*AuthServer, error) {
 		//		basicConnector: connector.BasicConnector{IDName: "Basic"},
 		suite: sec.P256Suite,
 	}
-	var pubKey []byte
 
-	pubKey, authServer.privKey, _ = newEcKey(256)
-	fmt.Printf("The public key is [%x]\n", string(pubKey))
-	fmt.Printf("The private key is [%x]\n", string(authServer.privKey))
-	authServer.privKey = []byte(config.PrivKey)
+	fmt.Printf("The priv key is [%s] and cert is [%s]", config.PrivKey, config.CertFile)
+	//var pubKey []byte
+	cer, err := tls.LoadX509KeyPair(config.CertFile, config.PrivKey)
 
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load TLS priv file and TLS Cert file", err)
+	}
+
+	fmt.Printf("\nThe tls cert is [%q]\n", cer.PrivateKey)
+	authServer.tlsConfig = &tls.Config{Certificates: []tls.Certificate{cer}}
+	//pubKey, authServer.privKey, _ = newEcKey(256)
+	//fmt.Printf("The public key is [%x]\n", string(pubKey))
+	authServer.privKey = cer.PrivateKey
+	fmt.Printf("hello akshay")
 	authServer.ldapConnector = &connector.LDAPConnector{}
 	return authServer, nil
 }
 
-func (s *AuthServer) NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) (string, error) {
+func getBytes(data interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(data)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+
+}
+func (s *AuthServer) NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) ([]byte, error) {
 	response, error := s.httpBearerES256(tr, valid)
 	return response, error
 }
@@ -105,6 +128,8 @@ func (s *AuthServer) Run() error {
 	//s.basicConnector.SetUp(auth.Auth(s))
 
 	//	go http.ListenAndServe(":8081", http.Handler(s.basicConnector))
-	http.ListenAndServe(":8082", http.Handler(s.ldapConnector))
-	return nil
+	//err := http.ListenAndServeTLS(":8082", "cert.crt", "cert.key", http.Handler(s.ldapConnector))
+	err := http.ListenAndServe(":8082", http.Handler(s.ldapConnector))
+	fmt.Printf("%q", err)
+	return err
 }

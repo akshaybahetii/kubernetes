@@ -11,19 +11,12 @@ import (
 
 //LDAPConnector struct {
 type BasicConnector struct {
+	authServer auth.Auth
+
 	IDName string `json:"id"`
 }
 
 type basicHandler struct{}
-
-//ID returns the ID of the ConnectorConfig used to create the Connector.
-func (BasicCtr BasicConnector) ID() string {
-	return "Basic"
-}
-
-func (BasicCtr BasicConnector) Handler() http.Handler {
-	return &basicHandler{}
-}
 
 func (*basicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Attempting Basic login")
@@ -46,4 +39,5 @@ func (*basicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //Setup configures connetor with config file parametes.
 func (BasicCtr BasicConnector) Setup(authServer auth.Auth) {
 	//Setup Basic connector.
+	BasicCtr.authServer = authServer
 }

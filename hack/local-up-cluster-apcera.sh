@@ -279,7 +279,7 @@ function start_apiserver {
       --insecure-bind-address="${API_HOST}" \
       --insecure-port="${API_PORT}" \
       --advertise-address="${API_HOST}" \
-      --apcera-pub-key="04437ce42461410967aeeec49af4e492a706b037eac6202143a032bc3dd819a58785efd013094bd7866b60addc9f7381a7308d5a764d5bb4a812a233c6d43f6e5e" \
+      --apcera-pub-key="/home/apcerian/work/kubernetes/plugin/cmd/apcera-auth-server/cert.crt" \
       --secure-port="8081" \
       --bind-address="${API_HOST}" \
       --etcd-servers="http://${ETCD_HOST}:${ETCD_PORT}" \

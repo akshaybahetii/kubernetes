@@ -3,9 +3,13 @@
 package sec
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -127,7 +131,7 @@ func (j *JWT) ClaimList() claims.ClaimList {
 
 // SignEncodeToken returns an encoded representation of a JWT signed
 // by the issuer private key.
-func SignEncodeToken(token *JWT, suite *AlgorithmSuite, issuerPrivKeyBytes []byte) (string, error) {
+func SignEncodeToken(token *JWT, suite *AlgorithmSuite, issuerPrivKeyBytes crypto.PrivateKey) (string, error) {
 	tokenEnvelopeBytes, err := json.Marshal(token.JWTEnvelope)
 	if err != nil {
 		return "", err
@@ -140,12 +144,24 @@ func SignEncodeToken(token *JWT, suite *AlgorithmSuite, issuerPrivKeyBytes []byt
 
 	encodedToken := base64Encode(tokenEnvelopeBytes) + "." + base64Encode(tokenBytes)
 
-	issuerPrivKey, err := ecPrivKey(suite.CurveBitSize, issuerPrivKeyBytes)
-	if err != nil {
-		return "", err
+	r := big.NewInt(0)
+	s := big.NewInt(0)
+
+	pKey := issuerPrivKeyBytes.(*ecdsa.PrivateKey)
+	r, s, serr := ecdsa.Sign(rand.Reader, pKey, []byte(encodedToken))
+	if serr != nil {
+		return "", serr
 	}
 
-	tokenSigBytes, err := signBytes(suite.DigestBitSize, []byte(encodedToken), issuerPrivKey)
+	signature := r.Bytes()
+	tokenSigBytes := append(signature, s.Bytes()...)
+
+	/*	issuerPrivKey, err := ecPrivKey(suite.CurveBitSize, issuerPrivKeyBytes)
+		if err != nil {
+			return "", err
+		}
+	*/
+	//tokenSigBytes, err := signBytes(suite.DigestBitSize, []byte(encodedToken), issuerPrivKey)
 	if err != nil {
 		return "", err
 	}
@@ -171,7 +187,7 @@ func (d *TokenError) Error() string {
 func DecodeVerifyToken(
 	encodedToken string,
 	suite *AlgorithmSuite,
-	pubKeys map[string][]byte,
+	ePublicKey *ecdsa.PublicKey,
 	trustedAudiences []string,
 ) (*JWT, error) {
 
@@ -182,16 +198,19 @@ func DecodeVerifyToken(
 		return nil, errors.New("malformed token")
 	}
 
-	if len(pubKeys) == 0 {
-		return nil, errors.New("no public keys defined")
+	if ePublicKey == nil {
+		return nil, errors.New("no public key defined")
 	}
 
-	/*	sig, err := base64Decode(encodedToken[lastDotPos+1:])
-		if err != nil {
-			return nil, err
-		}
+	sig, err := base64Decode(encodedToken[lastDotPos+1:])
+	if err != nil {
+		return nil, err
+	}
 
-		sigPayload := encodedToken[0:lastDotPos]*/
+	rr := new(big.Int).SetBytes(sig[:len(sig)/2])
+	ss := new(big.Int).SetBytes(sig[len(sig)/2:])
+
+	sigPayload := encodedToken[0:lastDotPos]
 
 	envBytes, err := base64Decode(encodedToken[0:firstDotPos])
 	if err != nil {
@@ -212,37 +231,37 @@ func DecodeVerifyToken(
 		return nil, err
 	}
 
-	issuerPubKeyBytes := pubKeys[token.Issuer]
-	if len(issuerPubKeyBytes) == 0 {
-		return nil, &TokenError{fmt.Sprintf("token issued by an untrusted issuer %q", token.Issuer)}
+	if !ecdsa.Verify(ePublicKey, []byte(sigPayload), rr, ss) {
+		return nil, &TokenError{"Signature virification failed"}
 	}
 
 	/*	issuerPubKey, err := ecPubKey(suite.CurveBitSize, issuerPubKeyBytes)
-			if err != nil {
-				return nil, err
-			}
-
-			if err := verifyBytes(suite.DigestBitSize, []byte(sigPayload), sig, issuerPubKey); err != nil {
-				return nil, err
-			}
-
-		trusted := false
-		for _, trustedAudience := range trustedAudiences {
-			if token.Audience == trustedAudience {
-				trusted = true
-				break
-			}
+		if err != nil {
+			return nil, err
 		}
 
-		if !trusted {
-			return nil, &TokenError{fmt.Sprintf("token audience %q is not trusted", token.Audience)}
+		if err := verifyBytes(suite.DigestBitSize, []byte(sigPayload), sig, issuerPubKey); err != nil {
+			return nil, err
 		}
-
-		if token.ExpiresAt < time.Now().Unix() {
-			return nil, &TokenError{"token has expired"}
-		}
-
-		token.OriginalToken = encodedToken
 	*/
+	trusted := false
+	for _, trustedAudience := range trustedAudiences {
+		if token.Audience == trustedAudience {
+			trusted = true
+			break
+		}
+	}
+
+	if !trusted {
+		return nil, &TokenError{fmt.Sprintf("token audience %q is not trusted", token.Audience)}
+	}
+
+	if token.ExpiresAt < time.Now().Unix() {
+
+		return nil, &TokenError{fmt.Sprintf("token has expired %q", token.ExpiresAt)}
+	}
+
+	token.OriginalToken = encodedToken
+
 	return token, nil
 }
