@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,14 +9,15 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	utilflag "k8s.io/kubernetes/pkg/util/flag"
 )
 
 func NewCmdLogin(f *cmdutil.Factory, configAccess clientcmd.ConfigAccess, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
@@ -156,7 +158,11 @@ func handleAuthResponse(resp *http.Response) (string, error) {
 // request, check the response type, parse the token, set it and return.
 func (o *LDAPOptions) processAuthRequest(req *http.Request) error {
 
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{Transport: tr}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -219,11 +225,11 @@ func (o *LDAPOptions) connectWithServer(serverHost string) error {
 	ldapPort := 8082
 
 	url := fmt.Sprintf("%s:%d", serverHost, ldapPort)
-	fmt.Printf("The URL	11 used is %s\n", url)
-	url = strings.Replace(url, "https", "http", 1)
+	/*	fmt.Printf("The URL	11 used is %s\n", url)
+		url = strings.Replace(url, "https", "http", 1)
 
-	fmt.Printf("The URL used is %s\n", url)
-
+		fmt.Printf("The URL used is %s\n", url)
+	*/
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return err
@@ -242,18 +248,24 @@ func (o *LDAPOptions) connectWithServer(serverHost string) error {
 }
 
 func (o *LDAPOptions) RunLDAPLogin(out io.Writer, in io.Reader, cmd *cobra.Command, f *cmdutil.Factory) error {
-	fmt.Fprintf(out, fmt.Sprintf("Hi KAhsya"))
 	var buf []byte
 
-	config, err := f.ClientConfig()
+	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
+	flags.SetNormalizeFunc(utilflag.WarnWordSepNormalizeFunc) // Warn for "_" flags
+
+	cmdCliCfg := cmdutil.DefaultClientConfig(flags)
+	config, err := cmdCliCfg.ClientConfig()
 	if err != nil {
+		fmt.Fprintf(out, fmt.Sprintf("Hi apcera test logi [%q]", err))
 		return err
 	}
 	o.Config = config
 
+	fmt.Fprintf(out, fmt.Sprintf("Hi apcera test log"))
 	io.ReadFull(in, buf)
 
 	host, _, _ := net.SplitHostPort(config.Host)
+
 	err = o.connectWithServer(host)
 
 	fmt.Fprintf(out, fmt.Sprintf("Login success apcera !! [%s][%s][%q]", o.Username, o.Password, err))

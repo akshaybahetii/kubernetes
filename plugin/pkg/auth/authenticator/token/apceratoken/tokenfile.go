@@ -67,6 +67,6 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, e
 		Name: jwt.Claims[1].Value.(string),
 	}
 
-	fmt.Printf("token and claims are  [%s]--[%q]", value, err)
+	fmt.Printf("\n Token claims are  [%q]", jwt)
 	return user, true, nil
 }

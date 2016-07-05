@@ -17,17 +17,14 @@ limitations under the License.
 // Package options contains flags for initializing a proxy.
 package options
 
-import (
-	"fmt"
-
-	"github.com/spf13/pflag"
-)
+import "github.com/spf13/pflag"
 
 // AuthServerConfig configures and runs a Kubernetes proxy server
 type AuthServerConfig struct {
 	Host     string
 	CertFile string
 	PrivKey  string
+	TokenExp int
 }
 
 //NewAuthConfig auth config struct
@@ -37,6 +34,7 @@ func NewAuthConfig() *AuthServerConfig {
 		Host:     "default-apcera-host",
 		PrivKey:  "cert.key",
 		CertFile: "cert.crt",
+		TokenExp: 720,
 	}
 }
 
@@ -45,5 +43,5 @@ func (s *AuthServerConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Host, "host", s.Host, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	fs.StringVar(&s.PrivKey, "priv-key", s.PrivKey, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	fs.StringVar(&s.CertFile, "cert-file", s.CertFile, "CertFile for the http server.")
-	fmt.Printf("The flag set is [%q]", s)
+	fs.IntVar(&s.TokenExp, "token-exp", s.TokenExp, "Minutes for which the issued token is valid. If non-zero, 12 hours is the default. ")
 }

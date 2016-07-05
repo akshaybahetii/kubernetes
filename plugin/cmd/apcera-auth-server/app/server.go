@@ -19,15 +19,10 @@ limitations under the License.
 package app
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/tls"
-	"encoding/gob"
 	"fmt"
 	"net/http"
-	"sync"
-
-	"github.com/apcera/gossl"
 
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/claims"
 	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/token/apceratoken/connector"
@@ -41,10 +36,9 @@ type AuthServer struct {
 	hostname string
 	server   *http.Server
 
-	// keyMutex should be held when reading/updating component keys.
-	keyMutex  sync.RWMutex
+	tokenExp int
+
 	privKey   crypto.PrivateKey
-	pubKey    []byte
 	suite     *sec.AlgorithmSuite
 	tlsConfig *tls.Config
 
@@ -53,70 +47,31 @@ type AuthServer struct {
 	// May need to add a running flag that indicates server is running.
 }
 
-//TODO Temp function for testing will be removed.
-func newEcKey(size int) (pub, priv []byte, err error) {
-	key, err := gossl.NewECKey(size)
-	if err != nil {
-		return nil, nil, err
-
-	}
-	defer key.Free()
-	err = key.Generate()
-	if err != nil {
-		return nil, nil, err
-
-	}
-	pub, err = key.PubKey()
-	if err != nil {
-		return nil, nil, err
-
-	}
-	priv, err = key.PrivKey()
-	if err != nil {
-		return nil, nil, err
-
-	}
-	return
-}
-
 //NewAuthServer is contructor.
 func NewAuthServer(config *options.AuthServerConfig) (*AuthServer, error) {
 	authServer := &AuthServer{
 		hostname: config.Host,
 		server:   &http.Server{},
-		//Configure connectors based on configuration.
-		//		basicConnector: connector.BasicConnector{IDName: "Basic"},
-		suite: sec.P256Suite,
+		suite:    sec.P256Suite,
+		tokenExp: config.TokenExp,
 	}
 
 	fmt.Printf("The priv key is [%s] and cert is [%s]", config.PrivKey, config.CertFile)
-	//var pubKey []byte
 	cer, err := tls.LoadX509KeyPair(config.CertFile, config.PrivKey)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load TLS priv file and TLS Cert file", err)
+		return nil, fmt.Errorf("Failed to load TLS priv file and TLS Cert file [%q]", err)
 	}
 
 	fmt.Printf("\nThe tls cert is [%q]\n", cer.PrivateKey)
 	authServer.tlsConfig = &tls.Config{Certificates: []tls.Certificate{cer}}
-	//pubKey, authServer.privKey, _ = newEcKey(256)
-	//fmt.Printf("The public key is [%x]\n", string(pubKey))
 	authServer.privKey = cer.PrivateKey
-	fmt.Printf("hello akshay")
+
+	//Add connector based on auth type.
 	authServer.ldapConnector = &connector.LDAPConnector{}
 	return authServer, nil
 }
 
-func getBytes(data interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(data)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-
-}
 func (s *AuthServer) NewHttpResponseWriter(tr *http.Request, valid claims.ClaimList) ([]byte, error) {
 	response, error := s.httpBearerES256(tr, valid)
 	return response, error
@@ -128,8 +83,10 @@ func (s *AuthServer) Run() error {
 	//s.basicConnector.SetUp(auth.Auth(s))
 
 	//	go http.ListenAndServe(":8081", http.Handler(s.basicConnector))
-	//err := http.ListenAndServeTLS(":8082", "cert.crt", "cert.key", http.Handler(s.ldapConnector))
-	err := http.ListenAndServe(":8082", http.Handler(s.ldapConnector))
-	fmt.Printf("%q", err)
+	err := http.ListenAndServeTLS(":8082", "cert.crt", "cert.key", http.Handler(s.ldapConnector))
+	//err := http.ListenAndServe(":8082", http.Handler(s.ldapConnector))
+	if err != nil {
+		fmt.Printf("Failed to start http server [%q]", err)
+	}
 	return err
 }

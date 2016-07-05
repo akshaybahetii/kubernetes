@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,7 +17,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{Transport: tr}
 
 	req, err := http.NewRequest("GET", os.Args[1], nil)
 	req.SetBasicAuth(username, passwd)

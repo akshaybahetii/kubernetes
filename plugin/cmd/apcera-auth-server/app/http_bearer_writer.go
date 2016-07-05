@@ -23,32 +23,9 @@ func (s *AuthServer) httpBearerES256(tr *http.Request, valid claims.ClaimList) (
 		Audience: CLUSTER_NAME,
 		IssuedAt: time.Now().Add(sec.TokenTimeSkew).Unix(),
 	}
-	/*	token, err := a.addLDAPInfoToToken(token, valid)
-		erver.Requestgithub.com/apcera/continuum/api_server/converter"
-			if err != nil {
-				return tr.Req.NewFatalServerError("Failed to add LDAP related information to token: %s", err)
-			}
 
-			token, err = a.AddNameToToken(tr.Req.LogContext(), httpOAuth2Realm, token, valid)
-			if err != nil {
-				tr.Log.Errorf("Can't add name to token: %s", err)
-				return tr.Req.NewFatalServerError("Failed to add name to token: %s", err)
-			}
-			token, err = a.addAuthTypeToToken(token, valid)
-			if err != nil {
-				tr.Log.Errorf("Can't add auth_type to token: %s", err)
-				return tr.Req.NewFatalServerError("Failed to add auth type to token: %s", err)
-			}
-
-			exp, err := a.GetExpirationTime(httpOAuth2Realm, token)
-			if err != nil {
-				tr.Log.Error(err)
-				return tr.Req.NewFatalServerError("Failed to retrieve expiration time from policy: %s", err)
-			}
-			token.ExpiresAt = exp
-	*/
 	//TODO Akshay add config param for token expiration.
-	token.ExpiresAt = time.Now().Add(time.Duration(50000) * time.Second).Unix()
+	token.ExpiresAt = time.Now().Add(time.Duration(s.tokenExp*60) * time.Second).Unix()
 	for i := range valid {
 		token.Claims = append(token.Claims, *valid[i])
 
